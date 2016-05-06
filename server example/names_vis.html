@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Assignment 6</title>
+
+    <script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+
+    <style >
+    .axis text{
+      font-family:sans-serif;
+      font-size:11px;
+    }
+    .axis path,
+    .axis line{
+      fill:none;
+      stroke:gray;
+      shape-rendering: crisp-edges;
+
+    }
+
+    #mainVis{
+      float: left;
+    }
+
+    #legend{
+      float:left;
+    }
+
+    #legend li{
+      list-style-type: none;
+    }
+
+    #timeSlider{
+      clear:both;
+    }
+
+    .extent{
+      fill:#000;
+      fill-opacity:.25;
+      stroke:#fff;
+    }
+
+    #info{
+      position:absolute;
+      width:300px;
+      height:auto;
+      padding:10px;
+      background-color:white;
+      border-radius:10px;
+      box-shadow: 4px 4px 10px rgba(0,0,0,0.4);
+
+    }
+
+    #info.hidden{
+      display:none;
+    }
+
+    #info p{
+      margin:0px;
+      font-family:sans-serif;
+      font-size:12px;
+    }
+
+    </style>
+  </head>
+  <body>
+    <div id="mainVis"></div>
+
+    <div id="legend">
+    </div>
+
+    <div id="timeSlider"></div>
+
+  <div id="addPane">
+
+      <input type="text" id="nameEntry" />
+      <input type="radio" name="gender" id="gender_male" value="male" /> Male
+      <input type="radio" name="gender" id="gender_female" value="female" /> Female
+      <input type="radio" name="gender" id="gender_both" value="both" checked="true"/> Both
+
+      <input type="button" value="Add" id="addName" />
+
+  </div>
+
+  <div id="info" class="hidden">
+      <p> <span id="infoName">Name</span> [<span id="infoGender"></span>]</p>
+      <p> Year <span id="infoYear">Year</span>: <span id="infoCount">Count</span></p>
+</div>
+
+<script type="text/javascript">
+
+  var createMainView = function(parent, width, height){
+
+    var margins = {top:20, bottom:60, left: 60, right:20};
+    var chartWidth = width - margins.left - margins.right;
+    var chartHeight = height - margins.top - margins.bottom;
+    var strokeWidth = 2;
+    var strokeWidthSelected = 5;
+
+    var xScale = d3.scale.linear().range([0, chartWidth]);
+    var yScale = d3.scale.linear().range([chartHeight, 0]).domain([0,100]);
+
+
+    var xAxis = d3.svg.axis().scale(xScale).orient("bottom").tickFormat(d3.format("d"));
+    var yAxis = d3.svg.axis().scale(yScale).orient("left");
+
+    var line = d3.svg.line()
+    .interpolate("linear")
+        .x(function(d,i) { return xScale(+d.year); })
+        .y(function(d) {  return yScale(+d.count); });
+
+    var svg = d3.select(parent)
+      .append("svg")
+      .attr({width:width, height:height});
+
+    var chart = svg.append("g")
+      .attr("transform", "translate("+margins.left + "," + margins.top + ")");
+
+    var xAxisG = chart.append("g")
+      .attr({"class": "axis",
+              "transform": "translate(0," + chartHeight +")"});
+
+    var yAxisG = chart.append("g")
+      .attr({"class": "axis"});
+
+    xAxisG.call(xAxis);
+    yAxisG.call(yAxis);
+
+    var updateTooltip = function(d){
+      var coordinates = d3.mouse(chart.node());
+      var year = Math.round(xScale.invert(coordinates[0]));
+      var count = 0;
+      for (var i =0; i < d.values.length; i++){
+        if (d.values[i].year == year){
+          count = d.values[i].count;
+          break;
+        }
+      }
+
+      var info = d3.select("#info");
+      info.select("#infoName").text(d.name);
+      info.select("#infoGender").text(d.gender);
+      info.select("#infoYear").text(year);
+      info.select("#infoCount").text(count);
+
+      var bbox = chart.node().getBoundingClientRect();
+      coordinates[0] += bbox.left;
+      coordinates[1] += bbox.top;
+
+      info.style({
+        left: (coordinates[0] + 50 ) + "px",
+        top: (coordinates[1]  + 20) + "px",
+      }).classed("hidden", false);
+    };
+
+
+    var update = function(dataStore,animate){
+      var dataset = dataStore.records();
+
+      xScale.domain(dataStore.getDateRange());
+      yScale.domain(dataStore.countExtent());
+
+
+
+      var nameLines = chart.selectAll(".nameLine").data(dataset, dataStore.keyFunc);
+
+      nameLines.exit().remove();
+
+      nameLines.enter()
+      .append("path")
+      .classed("nameLine", true)
+      .style("fill","None")
+      .style("stroke",function(d){return d.color;})
+      .style("stroke-width", strokeWidth);
+
+
+      var dateRangeFilter = function(d){
+        return +d.year >= xScale.domain()[0] && +d.year <= xScale.domain()[1];
+      };
+
+      if (animate){
+        nameLines.transition().attr({
+          d: function(d){return line(d.values.filter(dateRangeFilter));}
+        });
+      }else{
+        nameLines.attr({
+          d: function(d){return line(d.values.filter(dateRangeFilter));}
+        });
+      }
+
+
+
+
+
+      nameLines.on("mouseover", function(d){
+        d3.select(this).style("stroke-width", strokeWidthSelected);
+
+        updateTooltip(d);
+
+      })
+      .on("mousemove", updateTooltip)
+      .on("mouseout", function(d){
+        d3.select(this).style("stroke-width", strokeWidth);
+        var info = d3.select("#info");
+        info.classed("hidden", true);
+      });
+
+
+      xAxisG.call(xAxis);
+      yAxisG.call(yAxis);
+    };
+
+    return {
+      update:update
+    };
+
+
+  };
+
+
+  var createLegend = function(parent){
+    var chart = d3.select(parent).append("ul");
+
+    var update = function(dataStore){
+      var dataset = dataStore.records();
+
+      var items = chart.selectAll(".legendEntry").data(dataset, dataStore.keyFunc);
+
+      items.exit().remove();
+
+      items = items.enter()
+      .append("li")
+      .classed("legendEntry", true);
+
+      items.append("span")
+      .style({
+        "padding-left":"10px",
+        "margin-right":"10px",
+        "background-color": function(d){return d.color;}
+      });
+
+      items.append("span")
+      .text(function(d){return d.name + " [" + d.gender+ "]"});
+
+      items.append("button")
+      .text("X")
+      .on("click", function(d){
+        dataStore.removeName(d);
+      })
+
+    };
+
+    return {
+      update:update
+    };
+  };
+
+
+  var createTimeSlider = function(parent, width, dataStore){
+    var chart = d3.select(parent);
+    var margins = {top:20, bottom:60, left: 60, right:20};
+
+
+    var svg = d3.select(parent)
+      .append("svg")
+      .attr({width:width, height:75});
+
+    var chart = svg.append("g")
+      .attr("transform", "translate(" + margins.left +", 0)");
+
+
+    var dateScale = d3.scale.linear().range([0, width - margins.left - margins.right])
+    .domain(dataStore.getDateRange());
+
+    var dateAxis = d3.svg.axis().scale(dateScale).orient("bottom").tickFormat(d3.format("d"));
+    var dateAxisG = chart.append("g")
+      .attr({"class": "axis",
+      "transform": "translate(0, "+ margins.top+")"});
+
+    dateAxisG.call(dateAxis);
+
+
+
+    var brush = d3.svg.brush()
+      .x(dateScale)
+      .on("brush", function(){
+        var e = brush.extent();
+        e[0] = Math.round(e[0]);
+        e[1] = Math.round(e[1]);
+        brush.extent(e);
+        dataStore.setDateRange(e);
+      })
+      .on("brushend", function(){
+        var e = brush.extent();
+        e[0] = Math.round(e[0]);
+        e[1] = Math.round(e[1]);
+        brush.extent(e);
+        if (e[0] === e[1]){
+          dataStore.setDateRange(dateScale.domain());
+        }else{
+          dataStore.setDateRange(e);
+        }
+      });
+
+
+    var brushG = chart.append("g")
+      .attr("class", "brush")
+      .call(brush);
+
+    brushG.selectAll("rect")
+    .attr({height:25});
+  };
+
+
+
+  var createDataStore = function(){
+    var store = new Map();
+    var listeners = [];
+    var countExtent = [0,0];
+    var dateRange = [1880, 2012];
+    var colors = ["#a6cee3", "#1f78b4", "#b2df8a", "#33a02c", "#fb9a99", "#e31a1c", "#fdbf6f", "#ff7f00", "#cab2d6", "#6a3d9a"];
+
+
+    var keyFunc = function(d){return d.name+'#'+d.gender;};
+
+    var addListener = function(callback){
+      listeners.push(callback);
+    };
+
+    var addName = function(nameData){
+      var dataStore = this;
+      nameData.color = colors.pop();
+      store.set(keyFunc(nameData), nameData);
+      var extent = d3.extent(nameData.values, function(v){return +v.count;});
+      countExtent = [Math.min(extent[0],countExtent[0]),Math.max(extent[1],countExtent[1])];
+
+      listeners.forEach(function(callback){
+        callback(dataStore,true);
+      });
+    };
+
+    var removeName = function(nameData){
+      var dataStore = this;
+
+      colors.push(nameData.color);
+      store.delete(keyFunc(nameData));
+
+      // recalculate the extent
+      countExtent = [0,0];
+      store.forEach(function(r, k){
+        var extent = d3.extent(r.values, function(v){return +v.count;});
+        countExtent = [Math.min(extent[0],countExtent[0]),Math.max(extent[1],countExtent[1])];
+      });
+
+      // notify the listeners that the data has changed
+      listeners.forEach(function(callback){
+        callback(dataStore,true);
+      });
+    };
+
+
+    var setDateRange = function(range){
+      var dataStore = this;
+      dateRange = range;
+      listeners.forEach(function(callback){
+        callback(dataStore,false);
+      });
+    };
+
+
+    var valuesToArray = function(){
+      var records = [];
+      store.forEach(function(v, k){
+        records.push(v);
+      });
+      return records;
+    }
+
+    return {
+      keyFunc:keyFunc,
+      addListener:addListener,
+      addName:addName,
+      removeName:removeName,
+      countExtent:function(){return countExtent;},
+      records:valuesToArray,
+      getDateRange:function(){return dateRange;},
+      setDateRange:setDateRange
+    };
+
+  }
+
+
+  var dataStore = createDataStore();
+  var mainView = createMainView('#mainVis', 700,700);
+  var legend = createLegend('#legend');
+  var timeSlider = createTimeSlider('#timeSlider', 700, dataStore);
+
+  dataStore.addListener(mainView.update);
+  dataStore.addListener(legend.update);
+
+
+  var nameAdd = function(){
+    var name = document.getElementById("nameEntry").value;
+    var male = document.getElementById("gender_male").checked;
+    var female = document.getElementById("gender_female").checked;
+    var both = document.getElementById("gender_both").checked;
+
+    d3.json('/name/'+name, function(data){
+      if (data.length === 0 ){
+        alert(name +" does not appear in the database");
+        return;
+      }
+        var nestedData = d3.nest()
+        .key(function(d){return d.gender;})
+        .map(data, d3.map);
+
+        if (male || both){
+          dataStore.addName({name:name, gender:"M", values:nestedData.get('M')});
+        }
+
+        if (female || both){
+          dataStore.addName({name:name, gender:"F", values:nestedData.get('F')});
+        }
+
+
+    });
+
+  };
+
+  document.getElementById('addName').onclick = nameAdd;
+
+</script>
+
+
+  </body>
+</html>
