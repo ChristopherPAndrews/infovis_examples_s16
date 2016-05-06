@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Pie Chart Example</title>
+    <script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+
+    <style>
+
+      .arc text{
+        font: 12px sans-serif;
+        text-anchor:middle;
+        fill: white;
+      }
+      .arc path{
+        stroke:#fff;
+      }
+
+    </style>
+
+  </head>
+  <body>
+  <div id="pieVis">
+
+  </div>
+
+    <script type="text/javascript">
+
+      // Some synthetic data
+      var data = [{species: 'Dalek', count:68},
+      {species: 'Cybermen', count:43},
+      {species: 'Ice Warriors', count:25},
+      {species: 'Yeti', count:6},
+      {species: 'Silurian', count:15}
+      ];
+
+      // basic dimensions of the chart
+      var width = 500;
+      var height = 500;
+      var radius = width/2;
+
+      // set up some colors
+      var colors = d3.scale.ordinal().range(["#e41a1c", "#377eb8", "#4daf4a", "#984ea3", "#ff7f00", "#ffff33"]);
+
+
+      // the arc tool draws arcs in SVG for us
+      // it assumes that it has been given a data object with a startAngle and endAngle
+      // setting the inner radius transforms this into a doughnut plot
+      var arc = d3.svg.arc()
+        .outerRadius(radius - 10)
+        .innerRadius(0);
+
+      // the pie layout takes an array of values and returns an array of Objects with the following properties
+      // value - the original value used to compute the angle
+      // startAngle - the start of the arc
+      // endAngle - the end of the arc
+      // padAngle - the amount of padding (if any)
+      // data - the original data object
+      var pie = d3.layout.pie()
+        .value(function(d) { return d.count;});
+
+      // build the visualization
+      var svg = d3.select("#pieVis")
+        .append('svg')
+        .attr({width:width, height:height});
+
+      // our pie will draw centered around the origin, so create a group and translate to the middle
+      var circle = svg.append('g')
+        .attr("transform", "translate(" + width/2 + "," +height/2 + ")");
+
+      // add g elements for each data object
+      var slices = circle.selectAll(".slice")
+        .data(pie(data))
+        .enter()
+        .append("g")
+        .attr("class", "arc");
+
+      // generate the actual arcs
+      slices.append("path")
+        .attr("d", arc)
+        .style("fill", function(d) {return colors(d.data.species);});
+
+      // adjust the inner radius of the arcs for when we generate the position of the labels
+      arc.innerRadius(width/4 );
+
+      // add text elements to our gs
+      // we use the centroid function of the arc tool which tells us where the center of the arc is
+      slices.append("text")
+        .attr("transform", function(d){return "translate(" + arc.centroid(d) + ")";})
+        .text(function(d){return d.data.species;});
+
+    </script>
+
+
+  </body>
+</html>

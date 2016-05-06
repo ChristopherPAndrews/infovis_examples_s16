@@ -1,0 +1,128 @@
+<!DOCTYPE html >
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<title>
+			TopoJSON Map of New Zealand
+		</title>
+		<script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+		<script src="http://d3js.org/topojson.v1.min.js"></script>
+
+		<style type="text/css">
+		path.NZN{
+			fill:#cdc;
+
+		}
+		path.NZS{
+			fill:#dcd;
+
+		}
+		path.NZA{
+			fill:#cdd;
+
+		}
+
+
+		path.place{
+			fill:black;
+		}
+
+		text.place-label{
+			font-size:9pt;
+
+		}
+
+		text.region-label{
+			fill: grey;
+			fill-opacity: .5;
+			font-size: 20pt;
+			font-weight: 300;
+			text-anchor: middle;
+
+		}
+
+		</style>
+	</head>
+	<body>
+
+
+
+		<script type="text/javascript">
+		// create the SVG region
+		var width = 600, height =900;
+		var svg = d3.select("body")
+		.append("svg")
+		.attr({"width":width, "height":height});
+
+
+		// create the projection
+		// Note that this uses the transverse mercator, which is the standard for mapping New Zealand (which is small and near a pole)
+		 var projection = d3.geo.transverseMercator()
+		.scale(3200)
+		.rotate([188,40.5])
+		.translate([width/2, height/2]);
+
+
+		// create the path tool
+		var path = d3.geo.path()
+			.projection(projection)
+			.pointRadius(3);
+
+
+
+		// grab the geography from the server
+		d3.json("http://www.cs.middlebury.edu/~candrews/classes/infovis/data/nz-topo.json",function (mapData) {
+
+			// This draws the actual land masses
+			// note the argument to data() where we are converting the TopoJSON data by extracting the
+			// features that we want
+			svg.selectAll("path")
+			.data(topojson.feature(mapData, mapData.objects.nzl_subunits).features)
+			.enter()
+			.append("path")
+			.attr("d",path)
+			.attr("class", function (d) {return d.id;});
+
+
+			// The json data also includes a collection of points of interest (major cities) as another feature
+			// those are also convereted to paths, this time, becoming points
+			svg.append("path")
+			.datum(topojson.feature(mapData, mapData.objects.nz_places))
+			.attr("d", path)
+			.attr("class","place")
+
+			// we run through that same data again, this time producing labels for the points
+			svg.selectAll(".place-label")
+		    .data(topojson.feature(mapData, mapData.objects.nz_places).features)
+		  .enter().append("text")
+		    .attr("class", "place-label")
+		    .attr("transform", function(d) { return "translate(" + projection(d.geometry.coordinates) + ")"; })
+			.attr("dx", ".5em")
+		    .text(function(d) { return d.properties.name; });
+
+
+			// finally, we add in some labels for the major land masses (note which feature we are dealing with)
+			var labels = svg.selectAll(".region-label")
+			    .data(topojson.feature(mapData, mapData.objects.nzl_subunits).features)
+			  .enter()
+			.append("text")
+			    .attr("class", function(d) { return "region-label " + d.id; })
+			    .attr("transform", function(d) { return "translate(" + path.centroid(d) + ")"; })
+			    .attr("dy", ".35em")
+			    .text(function(d) { return d.properties.name; });
+
+		});
+
+
+		</script>
+
+<div>
+	<p>This is an example that makes use of <a href-"https://github.com/mbostock/topojson">TopoJSON</a> instead of GeoJSON. Once you have included the TopoJSON library, this is pretty similar to working with GeoJSON. You just need to call the <code>topojson.feature</code> function to extract the features that you want, and it will assemble it into GeoJSON format, so the rest of the code is the same.</p>
+
+	<p>Since I was getting bored of the US map, I created this map of New Zealand with assistance from Mike Bostock's <a href="http://bost.ocks.org/mike/map/">Let's Make a Map</a> tutorial (which rather explains the styling I used). </p>
+
+</div>
+
+
+	</body>
+</html>

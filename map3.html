@@ -1,0 +1,79 @@
+<!DOCTYPE html >
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<title>
+			Map of National Parks
+		</title>
+		<script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+
+		<style type="text/css">
+
+
+		</style>
+	</head>
+	<body>
+
+
+
+		<script type="text/javascript">
+
+		// setup the SVG region
+		var width = 800, height = 500;
+		var svg = d3.select("body")
+		.append("svg")
+					.attr({"width":width, "height":height});
+
+		// create the projection
+		var projection = d3.geo.albersUsa()
+		.translate([width/2,height/2])
+		.scale([1000]);
+
+		// create the path tool
+		var path = d3.geo.path().projection(projection);
+
+
+
+		// load the geometry information
+		d3.json("http://www.cs.middlebury.edu/~candrews/classes/infovis/data/us-states.json",function (mapData) {
+
+			// fetch the park data
+			d3.csv("http://www.cs.middlebury.edu/~candrews/classes/infovis/data/national_park_service.csv", function (libraryData) {
+
+					// draw the circles
+					svg.selectAll("circle")
+					.data(libraryData)
+					.enter()
+					.append("circle")
+					.attr({
+						"cx": function (d) {return projection([+d.Longitude, +d.Latitude])[0];},
+						"cy": function (d) {return projection([+d.Longitude, +d.Latitude])[1];},
+						"r" : 2
+					})
+					.style("fill","blue")
+					.style("opacity",0.50)
+			});
+
+
+		// there is no connection between the underlying state shaps and our dots, we draw outside of the
+		// function fetching the park data so we can start drawing while it fetches
+		svg.selectAll("path")
+		.data(mapData.features)
+		.enter()
+		.append("path")
+		.attr("d",path)
+		.style("fill","white")
+		.style("stroke","gray");
+
+		});
+
+
+		</script>
+
+<div>
+	<p>This simple visualization shows a dot density map of the national parks across the US. The basic operation here is fairly simple. We create our circles just like we would for a scatterplot. However, the x,y position is determined by latitude and longitude. To put the dots in the right locations, we use the projection function to map the coordinates to the right points in the screen space.</p>
+</div>
+
+
+	</body>
+</html>

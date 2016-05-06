@@ -1,0 +1,179 @@
+<!DOCTYPE html >
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<title>
+			Map of Public Libraries with Zoom
+		</title>
+		<script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+
+		<style type="text/css">
+			.background {
+			  fill: none;
+			  pointer-events: all;
+			}
+
+			.feature {
+			  fill: #ccc;
+			  cursor: pointer;
+			}
+
+			.feature.active {
+			  fill: orange;
+			}
+
+			.mesh {
+			  fill: none;
+			  stroke: #fff;
+			  stroke-linecap: round;
+			  stroke-linejoin: round;
+			}
+
+
+
+
+		</style>
+	</head>
+	<body>
+
+
+
+		<script type="text/javascript">
+
+		// create our usual SVG region
+		var width = 800, height = 500;
+
+		var svg = d3.select("body")
+		.append("svg")
+		.attr({"width":width, "height":height});
+
+
+		// put in a background to get mouse clicks
+		svg.append("rect")
+		.attr("class", "background")
+		.attr("width", width)
+		.attr("height", height)
+		.on("click", reset);
+
+		// create the canvas
+		var canvas = svg.append("g");
+
+		// the "zoomed" state
+		var active = d3.select(null);
+
+
+
+		// create the zoom function
+		var zoom = d3.behavior.zoom()
+	    .translate([0, 0])
+	    .scale(1)
+	    .scaleExtent([1, 8])
+	    .on("zoom", zoomed);
+
+		// load the zoom behavior into the SVG
+		svg.call(zoom)
+		.call(zoom.event);
+
+
+		// create our projection
+		var projection = d3.geo.albersUsa()
+		.translate([width/2,height/2])
+		.scale([1000]);
+
+		// create the path tool
+		var path = d3.geo.path().projection(projection);
+
+
+		// fetch the geometry data
+		d3.json("http://www.cs.middlebury.edu/~candrews/classes/infovis/data/us-states.json",function (mapData) {
+
+			// fetch the library data
+			d3.csv("http://www.cs.middlebury.edu/~candrews/classes/infovis/data/public_libraries.csv", function (libraryData) {
+
+					// draw points for each library
+					canvas.selectAll("circle")
+					.data(libraryData)
+					.enter()
+					.append("circle")
+					.attr({
+						"cx": function (d) {return projection([+d.Longitude, +d.Latitude])[0];},
+						"cy": function (d) {return projection([+d.Longitude, +d.Latitude])[1];},
+						"r" : 1
+					})
+					.style("fill","blue")
+					.style("opacity",0.20)
+			});
+
+		// draw the map while we are waiting for the library data to load
+		canvas.selectAll("path")
+		.data(mapData.features)
+		.enter()
+		.append("path")
+		.attr("d",path)
+		.style("fill","white")
+		.style("stroke","gray")
+		.attr("class","feature")
+		.on("click",clicked);
+
+
+		});
+
+
+/**
+	Catch mouse clicks and either zoom out or zoom in depending on the current state
+**/
+function clicked(d) {
+	if (active.node() === this) return reset();
+	active.classed("active", false);
+	active = d3.select(this).classed("active", true);
+
+	var bounds = path.bounds(d),
+			dx = bounds[1][0] - bounds[0][0],
+			dy = bounds[1][1] - bounds[0][1],
+			x = (bounds[0][0] + bounds[1][0]) / 2,
+			y = (bounds[0][1] + bounds[1][1]) / 2,
+			scale = .9 / Math.max(dx / width, dy / height),
+			translate = [width / 2 - scale * x, height / 2 - scale * y];
+
+	svg.transition()
+			.duration(750)
+			.call(zoom.translate(translate).scale(scale).event);
+}
+
+
+/**
+	Zoom out to the full view.
+	**/
+function reset() {
+	active.classed("active", false);
+	active = d3.select(null);
+
+
+	svg.transition()
+			.duration(750)
+			.call(zoom.translate([0, 0]).scale(1).event);
+}
+
+/**
+	Change the apperance when we zoom
+**/
+function zoomed() {
+
+
+	canvas.style("stroke-width", 1.5 / d3.event.scale + "px");
+	canvas.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
+}
+
+// If the drag behavior prevents the default click,
+// also stop propagation so we don’t click-to-zoom.
+function stopped() {
+	if (d3.event.defaultPrevented) d3.event.stopPropagation();
+}
+
+		</script>
+
+
+
+<p>This is a variation on the previous example. It adds two things: a denser collection of dots, and state level zooming. The zoom functionality was lifted rather completely from the <a href="http://bl.ocks.org/mbostock/9656675">Zoom to Bounding Box II</a> example. You can zoom in an out by clicking on individual states. You can also use the mouse wheel to zoom smoothly (though there are enough points here that it will not be smooth). While zoomed, you can pan by clicking and dragging.</p>
+	</body>
+</html>

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Barchart example</title>
+    <script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+  </head>
+  <body>
+		<h3>Barchart Example Five</h3>
+
+		    <p>D3 ranges are pretty cool. It will try to coerce anything your give it into nice scales. Here we created a color scale by giving it two color values. For the domain, we map this to another dimension and we get a second level encoding.</p>
+    <script>
+
+      var width = 400;
+      var height = 300;
+
+
+      var xScale = d3.scale.ordinal().rangeRoundBands([0, width], 0.1);
+      var yScale = d3.scale.linear().range([height, 0]);
+      // we create a color scale that ranges from grey to red
+      var colorScale = d3.scale.linear().range(["grey", "red"]);
+
+      d3.csv("http://www.cs.middlebury.edu/~candrews/classes/infovis/data/drwho.csv", function(dataset){
+console.log(dataset);
+
+        // no we set the domain, which is just an array of the values we are putting on the x dimension
+        // we are using map, which iterates over our list of objects and returns a list of
+        // values
+        xScale.domain(dataset.map(function(d){return d.doctor;}));
+        yScale.domain([0, d3.max(dataset, function(d){return +d.duration;})]);
+
+        // we set the domain of our new colro scale to be the number of episodes
+        colorScale.domain([0, d3.max(dataset, function(d){return +d.episodes;})]);
+
+
+      var chart = d3.select('body')
+        .append('svg')
+        .attr({width:width, height:height});
+
+        chart.selectAll('rect')
+          .data(dataset)
+          .enter()
+          .append('rect')
+          .attr({x: function(d){return xScale(d.doctor);},
+                  y: function(d){return yScale(+d.duration);},
+                width: xScale.rangeBand(),
+                height: function(d){return height - yScale(+d.duration)}})
+          .style("fill", function(d){ return colorScale(+d.episodes); });
+});
+
+    </script>
+  </body>
+</html>

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Barchart example</title>
+    <script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+  </head>
+  <body>
+
+<h3>Barchart Example One</h3>
+
+    <p>This is a very simple (and tiny) barchart made with synthetic data. View the source to read the example and notes.</p>
+
+    <script>
+      var dataset = [15,23,8,3,21,17]; // synthetic data
+      var width = 400;
+      var height = 100;
+
+      // we start by appending an svg region to the DOM
+      // we could have just started with an svg region, but this makes it more
+      // flexible -- we can just pop a vis in anywhere
+      var chart = d3.select('body')
+        .append('svg')
+        .attr({width:width, height:height});
+
+      // chart now holds the svg region in a selection, and we can select from within that
+      // here we are using a common pattern, we select all of the rects in the svg
+      // there are none, so data() populates the enter selection with enough placeholders to map
+      // to all of the data elements, and then enter() switches us to that selection.
+      // append() adds a rect for each of the placeholders, and then we set their attributes
+      // with attr()
+      // Note that we can pass either raw values or functions to the attributes.
+      // when we pass functions, d3 will iterate all of the node in the selection, calling
+      // the given function for each node. The first argument is the data that has been bound to
+      // the node by data(). The second is the position of the node within the selection.
+      // Because this is JavaScript, we can leave off arguments we don't use.
+
+      chart.selectAll('rect')
+        .data(dataset)
+        .enter()
+        .append('rect')
+        .attr({x: function(d,i){return i*10;},
+              y: function(d){return height - d;},
+              width: 9,
+              height: function(d){return d;}});
+
+
+    </script>
+  </body>
+</html>

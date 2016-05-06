@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Barchart example</title>
+    <script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+    <style type="text/css">
+      .axis text{
+          font-family:sans-serif;
+          font-size:11px;
+      }
+      .axis path,
+      .axis line{
+        fill:none;
+        stroke:gray;
+        shape-rendering: crisp-edges;
+      }
+</style>
+
+  </head>
+  <body>
+		<h3>Barchart Example Six</h3>
+
+		    <p>Now we need some axes so that we know what we are looking at. The axes need to be outside of the main area of the visualization, but inside of the SVG (so they can be drawn). To get this to work, we place the visualization inside of a "g" (and SVG group object). We can translate this to some other region of the SVG. The beauty of this is that the "g" still maintains its personal origin.</p>
+
+        <p>Note that we also have to style the axes to get them to look reasonable. Otherwise, we can't see the tick marks. I've added a style section to the page up in the head. Since the axes are just SVG objects, if we know what they are, we can style them any way we like. </p>
+    <script>
+
+      var width = 400;
+      var height = 300;
+      // we will add some margins to help us place and reason about the graph itself
+      var margins = {top:0, bottom: 60, left: 60, right:0};
+
+      // some additional variables to help manage the chart dimensions
+      var chartWidth = width - margins.left - margins.right;
+      var chartHeight = height - margins.top - margins.bottom;
+      // we need to update our ranges to take the new size into account
+      var xScale = d3.scale.ordinal().rangeRoundBands([0, chartWidth], 0.1);
+      var yScale = d3.scale.linear().range([chartHeight, 0]);
+      var colorScale = d3.scale.linear().range(["grey", "red"]);
+
+      d3.csv("http://www.cs.middlebury.edu/~candrews/classes/infovis/data/drwho.csv", function(dataset){
+        console.log(dataset);
+
+        xScale.domain(dataset.map(function(d){return d.doctor;}));
+        yScale.domain([0, d3.max(dataset, function(d){return +d.duration;})]);
+        colorScale.domain([0, d3.max(dataset, function(d){return +d.episodes;})]);
+
+        // create a handle to the SVG region as well as to a new g
+        var svg = d3.select('body')
+          .append('svg')
+          .attr({width:width, height:height});
+
+        // create the new group and we use translate to move it over and down
+        var chart = svg.append("g").
+          attr("transform","translate("+margins.left + "," + margins.top + ")");
+
+        chart.selectAll('rect')
+          .data(dataset)
+          .enter()
+          .append('rect')
+          .attr({x: function(d){return xScale(d.doctor);},
+                  y: function(d){return yScale(+d.duration);},
+                width: xScale.rangeBand(),
+                height: function(d){return chartHeight  - yScale(+d.duration)}})
+          .style("fill", function(d){ return colorScale(+d.episodes); });
+
+        // create the x axis
+        // note that we are creating a funciton that when called will draw the axis
+        // we pass it the corresponding scale, and it handles the rest
+        var xAxis = d3.svg.axis()
+          .scale(xScale)
+          .orient("bottom");
+
+        // we do need to place the axis properly
+        // admittedly, the placement isn't necessarily pretty
+        // we can attach it to the SVG directly, but then we have to do the transformation again
+        // svg.append("g")
+        //   .attr("class","axis")
+        //   .attr("transform", "translate("+margins.left + ", " + (margins.top+ chartHeight)+")")
+        //   .call(xAxis);
+
+        // or we can attach it to the chart group, but then it is kind of outside of the region...
+        chart.append("g")
+          .attr("class","axis")
+          .attr("transform", "translate(0, " + chartHeight+")")
+          .call(xAxis);
+
+          var yAxis = d3.svg.axis()
+            .scale(yScale)
+            .orient("left");
+
+          chart.append("g")
+            .attr("class","axis")
+            .call(yAxis);
+
+
+});
+
+    </script>
+  </body>
+</html>

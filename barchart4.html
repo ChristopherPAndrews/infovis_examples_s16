@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Barchart example</title>
+    <script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+  </head>
+  <body>
+		<h3>Barchart Example Four</h3>
+
+		    <p>Now, we will apply a range to the x dimension as well. Since this is ordinal data, we will use an ordinal scale, which works a little differently. We are making use of "range bands". This looks at our ordinal data and figures out how to slice up the availble range to evenly distribute them.</p>
+    <script>
+
+      var width = 400;
+      var height = 300;
+
+      // create a range for our ordinal data.
+      // We use rangeRoundBands, which breaks the range up into bands
+      // the "round" part is that it will jump to integer values rather than trying to make use of
+      // fractional pixels
+      // the second argument is the percentage of the band width to use as spacing
+      var xScale = d3.scale.ordinal().rangeRoundBands([0, width], 0.1);
+      var yScale = d3.scale.linear().range([height, 0]);
+
+      d3.csv("http://www.cs.middlebury.edu/~candrews/classes/infovis/data/drwho.csv", function(dataset){
+console.log(dataset);
+
+        // no we set the domain, which is just an array of the values we are putting on the x dimension
+        // we are using map, which iterates over our list of objects and returns a list of
+        // values
+        xScale.domain(dataset.map(function(d){return d.doctor;}));
+        yScale.domain([0, d3.max(dataset, function(d){return +d.duration;})]);
+
+
+
+      var chart = d3.select('body')
+        .append('svg')
+        .attr({width:width, height:height});
+
+        chart.selectAll('rect')
+          .data(dataset)
+          .enter()
+          .append('rect')
+          .attr({x: function(d){return xScale(d.doctor);},
+                  y: function(d){return yScale(+d.duration);},
+                width: xScale.rangeBand(),
+                height: function(d){return height - yScale(+d.duration)}});
+});
+
+    </script>
+  </body>
+</html>

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Barchart example</title>
+    <script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+  </head>
+  <body>
+		<h3>Barchart Example Three</h3>
+
+		    <p>For our third example, we introduce scales, which make it easier for us to sepearate the domain of the data from the range of the physical drawing.</p>
+    <script>
+
+      var width = 400;
+      var height = 200;
+
+      // this creates a new function. We can call it with out data values and it will return the
+      // transformed value
+      // here we are setting the range (output values)
+      var yScale = d3.scale.linear().range([height, 0]);
+
+      d3.csv("http://www.cs.middlebury.edu/~candrews/classes/infovis/data/drwho.csv", function(dataset){
+console.log(dataset);
+
+        // once we have the data, we can set the domain based on the values of the metric we are
+        // intersted in
+        // note the use of d3.max() to find the largest value for this dimension
+        yScale.domain([0, d3.max(dataset, function(d){return +d.duration;})]);
+
+
+
+      var chart = d3.select('body')
+        .append('svg')
+        .attr({width:width, height:height});
+
+        chart.selectAll('rect')
+          .data(dataset)
+          .enter()
+          .append('rect')
+          .attr({x: function(d,i){return i*10;},
+                  y: function(d){return yScale(+d.duration);}, // example of calling the scale function
+                width: 9,
+                height: function(d){return height - yScale(+d.duration)}});
+});
+
+    </script>
+  </body>
+</html>

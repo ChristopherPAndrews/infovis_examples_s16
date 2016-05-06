@@ -1,0 +1,69 @@
+<!DOCTYPE html ">
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<title>
+			TreeMap Layout example
+		</title>
+		<script src="http://d3js.org/d3.v3.min.js"></script>
+</script>
+		<style type="text/css">
+
+		</style>
+	</head>
+	<body>
+
+
+		<script type="text/javascript">
+
+		var w = 800;
+		var h = 600;
+
+		var margin = {top:5, bottom:5, left:5, right: 5};
+		var width = w - margin.left - margin.right;
+		var height = h - margin.top - margin.bottom;
+
+
+		var svg = d3.select("body").append("svg")
+		.attr({width:w, height:h});
+
+		var chart = svg.append("g")
+		.attr("transform","translate("+margin.left + "," + margin.top+ ")");
+
+    var treemap = d3.layout.treemap()
+      .size([width, height])
+      .round(true)
+      .value(function(d){return +d.size;})
+      .mode("squarify")
+      .padding(2);
+
+		var color = d3.scale.category20c();
+
+		d3.json("http://www.cs.middlebury.edu/~candrews/classes/infovis/data/infovis_dir.json", function (dataset) {
+      var treeNodes = treemap.nodes(dataset);
+
+      var nodes = chart.selectAll(".node")
+        .data(treeNodes)
+        .enter()
+        .append("rect")
+        .attr({
+          class:"node",
+          x: function(d){return d.x;},
+          y: function(d){return d.y;},
+          width: function(d){return d.dx;},
+          height: function(d){return d.dy;},
+        })
+        .style("stroke", "white")
+        .style("fill", function(d){
+          return d.children? "grey":color(d.name.slice(d.name.length-3));
+        });
+
+      var labels = nodes.append("title")
+      .text(function(d){return d.name;});
+
+		});
+
+
+		</script>
+	</body>
+</html>
